@@ -60,6 +60,78 @@ jobs:
           npm ci --legacy-peer-deps || npm install --legacy-peer-deps
           npm install @react-native-community/cli-platform-android --save-dev
           npm install @react-native-community/cli --save-dev
+          npx react-native --version
+          
+      - name: Verify node_modules structure
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          ls -la node_modules/@react-native-community/ || echo "Directory not found"
+          # Create directory if it doesn't exist
+          mkdir -p node_modules/@react-native-community/cli-platform-android
+          # Check if the file exists and create it from template if not
+          if [ ! -f "node_modules/@react-native-community/cli-platform-android/native_modules.gradle" ]; then
+            echo "Creating missing native_modules.gradle file"
+            cat > node_modules/@react-native-community/cli-platform-android/native_modules.gradle << 'EOL'
+import groovy.json.JsonSlurper
+
+def reactNativePackages = new JsonSlurper().parse(file("../../../package.json")).dependencies
+def packageResolvers = []
+
+def registerPackage(packageResolver) {
+    packageResolvers.add(packageResolver)
+}
+
+def configureProjects() {
+    def reactProjects = []
+    packageResolvers.each { packageResolver ->
+        reactProjects.addAll(packageResolver())
+    }
+    return reactProjects
+}
+
+def findNodeModulePath() {
+    def baseDirFile = file("../")
+    if (baseDirFile.exists()) {
+        return baseDirFile.toString()
+    }
+    return "../"
+}
+
+def applyNativeModulesSettings(Settings settings) {
+    settings.gradle.beforeProject { project ->
+        project.configurations.all {
+            resolutionStrategy {
+                force "com.facebook.react:react-native:${reactNativePackages["react-native"]}"
+            }
+        }
+    }
+    configureProjects().forEach { reactProject ->
+        def modulePath = "${findNodeModulePath()}${reactProject.name}"
+        if (file(modulePath).exists()) {
+            settings.include(":${reactProject.name}")
+            settings.project(":${reactProject.name}").projectDir = file(modulePath)
+        }
+    }
+}
+
+def applyNativeModulesAppBuildGradle(Project project) {
+    def reactProjects = configureProjects()
+    reactProjects.forEach { reactProject ->
+        def modulePath = "${findNodeModulePath()}${reactProject.name}"
+        if (file(modulePath).exists()) {
+            project.dependencies {
+                if (reactProject.implementation) {
+                    implementation project(path: ":${reactProject.name}")
+                }
+            }
+        }
+    }
+}
+
+ext.applyNativeModulesSettings = this.&applyNativeModulesSettings
+ext.applyNativeModulesAppBuildGradle = this.&applyNativeModulesAppBuildGradle
+EOL
+          fi
 
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
