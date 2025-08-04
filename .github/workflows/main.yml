@@ -1,3 +1,4 @@
+# Fixed GitHub Actions workflow with corrected Gradle paths
 name: Build Android APK and AAB
 
 on:
@@ -10,24 +11,39 @@ on:
 
 jobs:
   build_android:
+    name: Build Android Release Artifacts
     runs-on: ubuntu-latest
 
-    env:
-      APP_DIR: react-native-gsm-sip-gateway/telon-gateway-app
-      ANDROID_DIR: ${{ env.APP_DIR }}/android
-
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           path: react-native-gsm-sip-gateway
+
+      - name: Set working directory
+        run: |
+          if [ -d "react-native-gsm-sip-gateway/telon-gateway-app" ]; then
+            echo "WORK_DIR=react-native-gsm-sip-gateway/telon-gateway-app" >> $GITHUB_ENV
+          elif [ -f "react-native-gsm-sip-gateway/package.json" ]; then
+            echo "WORK_DIR=react-native-gsm-sip-gateway" >> $GITHUB_ENV
+          else
+            echo "ERROR: No package.json found in expected locations"
+            exit 1
+          fi
+
+      - name: Checkout required dependencies
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          git clone https://github.com/telon-org/react-native-tele.git || echo "react-native-tele already exists"
+          git clone https://github.com/telon-org/react-native-sip2.git || echo "react-native-sip2 already exists"
+          git clone https://github.com/telon-org/react-native-replace-dialer.git || echo "react-native-replace-dialer already exists"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
+          cache-dependency-path: ${{ env.WORK_DIR }}/package-lock.json
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -38,52 +54,45 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install React-Native CLI globally
-        run: npm install -g @react-native-community/cli
-
-      - name: Install app dependencies
-        working-directory: ${{ env.APP_DIR }}
-        run: npm ci --legacy-peer-deps
-
-      - name: Verify CLI-Android module
-        working-directory: ${{ env.APP_DIR }}
+      - name: Install Dependencies
+        working-directory: ${{ env.WORK_DIR }}
         run: |
-          test -d node_modules/@react-native-community/cli-platform-android \
-            && echo "CLI-Android module present" \
-            || npm install @react-native-community/cli-platform-android --save-dev
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+          npm install @react-native-community/cli-platform-android --save-dev
+          npm install @react-native-community/cli --save-dev
 
       - name: Create local.properties
-        working-directory: ${{ env.ANDROID_DIR }}
+        working-directory: ${{ env.WORK_DIR }}/android
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Make Gradlew executable
-        working-directory: ${{ env.ANDROID_DIR }}
+        working-directory: ${{ env.WORK_DIR }}/android
         run: chmod +x gradlew
 
-      - name: Clean Android build
-        working-directory: ${{ env.ANDROID_DIR }}
+      - name: Clean build
+        working-directory: ${{ env.WORK_DIR }}/android
         run: ./gradlew clean
 
       - name: Build Android APK
-        working-directory: ${{ env.ANDROID_DIR }}
+        working-directory: ${{ env.WORK_DIR }}/android
         run: ./gradlew assembleRelease --stacktrace --info
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release.apk
-          path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/release/app-release.apk
-
-      - name: Build Android AAB
-        working-directory: ${{ env.ANDROID_DIR }}
+      - name: Build Android App Bundle (AAB)
+        working-directory: ${{ env.WORK_DIR }}/android
         run: ./gradlew bundleRelease --stacktrace --info
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-      - name: Upload AAB
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release.aab
-          path: ${{ env.ANDROID_DIR }}/app/build/outputs/bundle/release/app-release.aab
+          name: android-apk
+          path: ${{ env.WORK_DIR }}/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-bundle
+          path: ${{ env.WORK_DIR }}/android/app/build/outputs/bundle/release/app-release.aab
