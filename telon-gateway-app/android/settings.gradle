@@ -1,7 +1,12 @@
 rootProject.name = 'teleexample'
-include ':react-native-sip2'
-project(':react-native-sip2').projectDir = new File(rootProject.projectDir, '../../../modules/react-native-sip2/android')
-include ':react-native-tele'
-project(':react-native-tele').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-tele/android/app')
-apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
+
+// This script is the standard way to handle React Native autolinking.
+// It automatically discovers and includes your native modules from node_modules.
+apply from: new File(rootProject.projectDir, "../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettings(settings)
+
 include ':app'
+
+// The 'applyNativeModulesSettings(settings)' line above handles including your
+// dependencies like 'react-native-sip2' and 'react-native-tele' automatically.
+// You do not need to include them manually.
