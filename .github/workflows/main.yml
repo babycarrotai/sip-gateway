@@ -1,4 +1,3 @@
-# Fixed GitHub Actions workflow for building Android app
 name: Build Android APK and AAB
 
 on:
@@ -11,46 +10,24 @@ on:
 
 jobs:
   build_android:
-    name: Build Android Release Artifacts
     runs-on: ubuntu-latest
 
+    env:
+      APP_DIR: react-native-gsm-sip-gateway/telon-gateway-app
+      ANDROID_DIR: ${{ env.APP_DIR }}/android
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           path: react-native-gsm-sip-gateway
-
-      - name: Debug repository structure
-        run: |
-          echo "=== Repository Structure ==="
-          find react-native-gsm-sip-gateway -maxdepth 3 -type d | head -20
-          echo "=== Looking for package.json ==="
-          find react-native-gsm-sip-gateway -name "package.json" -type f
-
-      - name: Set working directory
-        run: |
-          if [ -d "react-native-gsm-sip-gateway/telon-gateway-app" ]; then
-            echo "WORK_DIR=react-native-gsm-sip-gateway/telon-gateway-app" >> $GITHUB_ENV
-          elif [ -f "react-native-gsm-sip-gateway/package.json" ]; then
-            echo "WORK_DIR=react-native-gsm-sip-gateway" >> $GITHUB_ENV
-          else
-            echo "ERROR: No package.json found in expected locations"
-            exit 1
-          fi
-
-      - name: Checkout required dependencies
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          git clone https://github.com/telon-org/react-native-tele.git || echo "react-native-tele already exists"
-          git clone https://github.com/telon-org/react-native-sip2.git || echo "react-native-sip2 already exists"
-          git clone https://github.com/telon-org/react-native-replace-dialer.git || echo "react-native-replace-dialer already exists"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: ${{ env.WORK_DIR }}/package-lock.json
+          cache-dependency-path: ${{ env.APP_DIR }}/package-lock.json
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -61,76 +38,52 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install React Native CLI
+      - name: Install React-Native CLI globally
         run: npm install -g @react-native-community/cli
 
-      - name: Install Dependencies
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          echo "Installing dependencies in: $(pwd)"
-          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-          
-      - name: Verify React Native setup
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          echo "=== Checking node_modules ==="
-          ls -la node_modules/ | head -10
-          echo "=== Checking for CLI platform android ==="
-          ls -la node_modules/@react-native-community/cli-platform-android/ 2>/dev/null || echo "CLI platform android not found"
-          echo "=== Checking for native_modules.gradle ==="
-          find node_modules -name "native_modules.gradle" -type f || echo "native_modules.gradle not found"
+      - name: Install app dependencies
+        working-directory: ${{ env.APP_DIR }}
+        run: npm ci --legacy-peer-deps
 
-      - name: Install missing dependencies
-        working-directory: ${{ env.WORK_DIR }}
-        if: failure()
+      - name: Verify CLI-Android module
+        working-directory: ${{ env.APP_DIR }}
         run: |
-          echo "Installing missing React Native dependencies..."
-          npm install @react-native-community/cli-platform-android --save-dev
-          npm install @react-native-community/cli --save-dev
+          test -d node_modules/@react-native-community/cli-platform-android \
+            && echo "CLI-Android module present" \
+            || npm install @react-native-community/cli-platform-android --save-dev
 
       - name: Create local.properties
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "Creating local.properties with ANDROID_HOME=$ANDROID_HOME"
+        working-directory: ${{ env.ANDROID_DIR }}
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Make Gradlew executable
-        working-directory: ${{ env.WORK_DIR }}
-        run: chmod +x android/gradlew
+        working-directory: ${{ env.ANDROID_DIR }}
+        run: chmod +x gradlew
 
-      - name: Clean build
-        working-directory: ${{ env.WORK_DIR }}
-        run: ./android/gradlew clean
+      - name: Clean Android build
+        working-directory: ${{ env.ANDROID_DIR }}
+        run: ./gradlew clean
 
       - name: Build Android APK
-        working-directory: ${{ env.WORK_DIR }}
-        run: ./android/gradlew assembleRelease --stacktrace --info
+        working-directory: ${{ env.ANDROID_DIR }}
+        run: ./gradlew assembleRelease --stacktrace --info
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-      - name: Build Android App Bundle (AAB)
-        working-directory: ${{ env.WORK_DIR }}
-        run: ./android/gradlew bundleRelease --stacktrace --info
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: ${{ env.ANDROID_DIR }}/app/build/outputs/apk/release/app-release.apk
+
+      - name: Build Android AAB
+        working-directory: ${{ env.ANDROID_DIR }}
+        run: ./gradlew bundleRelease --stacktrace --info
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-      - name: Upload APK artifact
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: ${{ env.WORK_DIR }}/android/app/build/outputs/apk/release/app-release.apk
-
-      - name: Upload AAB artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-bundle
-          path: ${{ env.WORK_DIR }}/android/app/build/outputs/bundle/release/app-release.aab
-
-      - name: Upload build logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            ${{ env.WORK_DIR }}/android/app/build/outputs/logs/
-            ${{ env.WORK_DIR }}/android/build/
+          name: app-release.aab
+          path: ${{ env.ANDROID_DIR }}/app/build/outputs/bundle/release/app-release.aab
