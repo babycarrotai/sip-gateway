@@ -1,52 +1,52 @@
-# A clean, modern workflow to build the Android APK
-name: Build Android APK
+name: Build Android Gateway APK
 
 on:
   push:
     branches:
-      - "**" # Runs on any push to any branch
+      - "**"
+  workflow_dispatch:
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the repository's code
+      # Step 1: Check out the repository's code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Set up the correct Java version required for modern Android builds
+      # Step 2: NEW - List files to see if yarn.lock is present
+      - name: List files in the repository
+        run: ls -la
+
+      # Step 3: Set up JDK version 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # 3. Set up the correct Node.js version (18+) as required by the dependencies
+      # Step 4: Set up Node.js version 18
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # Use caching for yarn to speed up subsequent builds
           cache: 'yarn'
 
-      # 4. Install dependencies using the correct package manager (Yarn)
+      # Step 5: Install Yarn Dependencies
       - name: Install Yarn Dependencies
         run: yarn install
 
-      # 5. Build the Android APK
-      #    - cd into the 'android' directory
-      #    - chmod +x gradlew makes sure the Gradle wrapper is executable
-      #    - ./gradlew assembleRelease builds the release APK
+      # Step 6: Build the release APK
       - name: Build Android Release APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
 
-      # 6. Upload the generated APK as a downloadable artifact
+      # Step 7: Upload the generated APK artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gsm-sip-gateway-apk
-          path: android/app/build/outputs/apk/release/app-release.apk```
+          path: android/app/build/outputs/apk/release/app-release.apk
