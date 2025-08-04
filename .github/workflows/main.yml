@@ -62,6 +62,13 @@ jobs:
           npm install @react-native-community/cli --save-dev
           npx react-native --version
       
+      - name: Patch library Gradle files
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          sed -i '/android {/a \    namespace "com.reactlibrary.sip2"' node_modules/react-native-sip2/android/build.gradle
+          sed -i '/android {/a \    namespace "com.reactlibrary.tele"' node_modules/react-native-tele/android/build.gradle
+          sed -i '/android {/a \    namespace "com.reactlibrary.replacedialer"' node_modules/react-native-replace-dialer/android/build.gradle
+
       # Removed native_modules.gradle verification since autolinking is disabled
 
       - name: Create local.properties
