@@ -61,17 +61,12 @@ jobs:
           npm install @react-native-community/cli-platform-android --save-dev
           npm install @react-native-community/cli --save-dev
           npx react-native --version
-          
-      - name: Verify node_modules structure
+      
+      - name: Create native_modules.gradle file
         working-directory: ${{ env.WORK_DIR }}
         run: |
-          ls -la node_modules/@react-native-community/ || echo "Directory not found"
-          # Create directory if it doesn't exist
           mkdir -p node_modules/@react-native-community/cli-platform-android
-          # Check if the file exists and create it from template if not
-          if [ ! -f "node_modules/@react-native-community/cli-platform-android/native_modules.gradle" ]; then
-            echo "Creating missing native_modules.gradle file"
-            cat > node_modules/@react-native-community/cli-platform-android/native_modules.gradle << 'EOL'
+          cat > node_modules/@react-native-community/cli-platform-android/native_modules.gradle << 'EOF'
 import groovy.json.JsonSlurper
 
 def reactNativePackages = new JsonSlurper().parse(file("../../../package.json")).dependencies
@@ -130,8 +125,7 @@ def applyNativeModulesAppBuildGradle(Project project) {
 
 ext.applyNativeModulesSettings = this.&applyNativeModulesSettings
 ext.applyNativeModulesAppBuildGradle = this.&applyNativeModulesAppBuildGradle
-EOL
-          fi
+EOF
 
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
