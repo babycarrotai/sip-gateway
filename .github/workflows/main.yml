@@ -86,10 +86,8 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           echo "NDK_HOME=$ANDROID_HOME/ndk/25.1.8937393" >> $GITHUB_ENV
 
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > react-native-gsm-sip-gateway/telon-gateway-app/android/local.properties
-          echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> react-native-gsm-sip-gateway/telon-gateway-app/android/local.properties
+      - name: Install global React Native CLI
+        run: npm install -g @react-native-community/cli
 
       - name: Install Dependencies
         run: |
@@ -99,12 +97,41 @@ jobs:
           npm install
         working-directory: react-native-gsm-sip-gateway/telon-gateway-app
 
+      - name: Verify React Native setup
+        run: |
+          # Ensure React Native CLI is available and check critical files
+          npx react-native --version
+          echo "Checking for native_modules.gradle..."
+          find node_modules -name "native_modules.gradle" -type f || echo "native_modules.gradle not found"
+          echo "React Native Community CLI platform android:"
+          ls -la node_modules/@react-native-community/cli-platform-android/ || echo "CLI platform Android not found"
+        working-directory: react-native-gsm-sip-gateway/telon-gateway-app
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "ndk.dir=$ANDROID_HOME/ndk/25.1.8937393" >> android/local.properties
+        working-directory: react-native-gsm-sip-gateway/telon-gateway-app
+
+      - name: Link React Native dependencies
+        run: |
+          # Try to link React Native dependencies properly
+          npx react-native unlink || echo "Unlink command not available"
+          npx react-native link || echo "Link command not available - using autolinking"
+        working-directory: react-native-gsm-sip-gateway/telon-gateway-app
+
       - name: Make Gradlew executable
         run: chmod +x gradlew
         working-directory: react-native-gsm-sip-gateway/telon-gateway-app/android
 
-      - name: Clean Gradle
-        run: ./gradlew clean
+      - name: Clean Gradle (with debug info)
+        run: |
+          echo "Current directory structure:"
+          ls -la ../
+          echo "Node modules structure:"
+          ls -la ../node_modules/@react-native-community/ || echo "react-native-community not found"
+          echo "Running gradlew clean with debug info:"
+          ./gradlew clean --stacktrace --debug || ./gradlew clean --stacktrace
         working-directory: react-native-gsm-sip-gateway/telon-gateway-app/android
 
       - name: Generate React Native Bundle
@@ -171,9 +198,8 @@ jobs:
         run: |
           sdkmanager "platforms;android-33" "build-tools;33.0.2"
 
-      - name: Create local.properties
-        run: |
-          echo "sdk.dir=$ANDROID_HOME" > react-native-gsm-sip-gateway/telon-gateway-app/android/local.properties
+      - name: Install global React Native CLI
+        run: npm install -g @react-native-community/cli
 
       - name: Install Dependencies
         run: |
@@ -181,6 +207,11 @@ jobs:
           rm -f package-lock.json
           rm -rf node_modules
           npm install
+        working-directory: react-native-gsm-sip-gateway/telon-gateway-app
+
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
         working-directory: react-native-gsm-sip-gateway/telon-gateway-app
 
       - name: Generate React Native Bundle
