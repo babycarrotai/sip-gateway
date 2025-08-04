@@ -31,22 +31,17 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout required dependencies
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          git clone https://github.com/telon-org/react-native-replace-dialer.git
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '12'
           cache: 'npm'
           cache-dependency-path: ${{ env.WORK_DIR }}/package-lock.json
 
-      - name: Set up JDK 17
+      - name: Set up JDK 8
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '8'
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -55,12 +50,7 @@ jobs:
       - name: Install Dependencies
         working-directory: ${{ env.WORK_DIR }}
         run: |
-          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-          npm install @react-native-community/cli-platform-android --save-dev
-          npm install @react-native-community/cli --save-dev
-          npx react-native --version
-      
-      # Removed native_modules.gradle verification since autolinking is disabled
+          npm install
 
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
