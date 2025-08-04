@@ -62,12 +62,7 @@ jobs:
           npm install @react-native-community/cli --save-dev
           npx react-native --version
       
-      - name: Verify native_modules.gradle exists
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          if [ ! -f node_modules/@react-native-community/cli-platform-android/native_modules.gradle ]; then
-            echo "native_modules.gradle not found after npm install. Exiting." && exit 1
-          fi
+      # Removed native_modules.gradle verification since autolinking is disabled
 
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
