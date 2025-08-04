@@ -38,16 +38,14 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ${{ env.WORK_DIR }}/package-lock.json
 
-      - name: Set up JDK 8
+      - name: Set up JDK 17 for SDK Manager
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: '6249121'
 
       - name: Install Dependencies
         working-directory: ${{ env.WORK_DIR }}
@@ -57,6 +55,12 @@ jobs:
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Set up JDK 8 for Gradle
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
 
       - name: Make Gradlew executable
         working-directory: ${{ env.WORK_DIR }}/android
