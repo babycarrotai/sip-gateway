@@ -50,7 +50,3 @@ jobs:
         with:
           name: gsm-sip-gateway-apk
           path: android/app/build/outputs/apk/release/app-release.apk```
-
-6.  Click the green **"Commit changes..."** button to save the file.
-
-This will replace your old, broken workflow with the new, correct one. Go to the "Actions" tab to watch it run. It should now succeed and produce the downloadable APK file you need.
