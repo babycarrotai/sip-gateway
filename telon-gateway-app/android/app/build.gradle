@@ -80,7 +80,7 @@ project.ext.react = [
     enableHermes: false,  // clean and rebuild if changing
 ]
 
-apply from: "../../node_modules/react-native/react.gradle"
+// Removed apply from react.gradle; bundling will be handled in CI workflow
 
 /**
  * Set this to true to create two separate APKs instead of one:
@@ -121,7 +121,7 @@ def enableHermes = project.ext.react.get("enableHermes", false);
 
 android {
     namespace "one.telefon.gateway"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdkVersion 34
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
@@ -130,8 +130,8 @@ android {
 
     defaultConfig {
         applicationId "one.telefon.gateway"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        minSdkVersion 21
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
     }
