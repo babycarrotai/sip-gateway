@@ -10,14 +10,23 @@ jobs:
   build-android:
     runs-on: ubuntu-latest
 
+    # NEW: This default setting tells all 'run' steps to execute inside this directory
+    defaults:
+      run:
+        working-directory: ./sip-gateway
+
     steps:
-      # Step 1: Check out the repository's code
+      # Step 1: Checks out the repository, creating the 'sip-gateway' directory
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          # This ensures the checkout places the repo content in a 'sip-gateway' subfolder
+          path: sip-gateway
 
-      # Step 2: NEW - List files to see if yarn.lock is present
-      - name: List files in the repository
+      # Step 2: List files to confirm the structure
+      - name: List files in workspace
         run: ls -la
+        working-directory: . # Run this step at the root to see the sub-directory
 
       # Step 3: Set up JDK version 17
       - name: Set up JDK 17
@@ -32,12 +41,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'yarn'
+          # Tell the cache where to find the lock file
+          cache-dependency-path: sip-gateway/yarn.lock
 
-      # Step 5: Install Yarn Dependencies
+      # Step 5: Install Yarn Dependencies (will run inside 'sip-gateway')
       - name: Install Yarn Dependencies
         run: yarn install
 
-      # Step 6: Build the release APK
+      # Step 6: Build the release APK (will run inside 'sip-gateway')
       - name: Build Android Release APK
         run: |
           cd android
@@ -49,4 +60,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gsm-sip-gateway-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          # The path is relative to the workspace root
+          path: sip-gateway/android/app/build/outputs/apk/release/app-release.apk
