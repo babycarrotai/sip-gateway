@@ -60,44 +60,6 @@ jobs:
           npm install @react-native-community/cli --save-dev
           npx react-native --version
       
-      - name: Patch library Gradle files
-        working-directory: ${{ env.WORK_DIR }}
-        run: |
-          LIBRARIES=(
-            "node_modules/react-native-sip2"
-            "node_modules/react-native-tele"
-            "node_modules/react-native-replace-dialer"
-          )
-          NAMESPACES=(
-            "com.reactlibrary.sip2"
-            "com.reactlibrary.tele"
-            "com.reactlibrary.replacedialer"
-          )
-
-          for i in ${!LIBRARIES[@]}; do
-            LIB_PATH=${LIBRARIES[$i]}
-            NAMESPACE=${NAMESPACES[$i]}
-            GRADLE_FILE="$LIB_PATH/android/build.gradle"
-            
-            if [ -f "$GRADLE_FILE" ]; then
-              echo "Patching $GRADLE_FILE"
-              
-              # Add namespace
-              sed -i "/android {/a \    namespace \"$NAMESPACE\"" "$GRADLE_FILE"
-              
-              # Add buildTypes to create release variant
-              sed -i '/defaultConfig {/i \
-          buildTypes {\
-              release {\
-                  minifyEnabled false\
-              }\
-          }\
-          ' "$GRADLE_FILE"
-            else
-              echo "WARNING: $GRADLE_FILE not found. Skipping patch."
-            fi
-          done
-
       # Removed native_modules.gradle verification since autolinking is disabled
 
       - name: Create local.properties

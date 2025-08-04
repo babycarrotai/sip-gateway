@@ -37,3 +37,20 @@ allprojects {
         maven { url 'https://jitpack.io' }
     }
 }
+
+subprojects {
+    afterEvaluate {project ->
+        if (project.hasProperty('android')) {
+            android {
+                if (project.name in ['react-native-sip2', 'react-native-tele', 'react-native-replace-dialer']) {
+                    namespace "com.reactlibrary.${project.name.replace('-', '')}"
+                    buildTypes {
+                        release {
+                            minifyEnabled false
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
