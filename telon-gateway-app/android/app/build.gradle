@@ -1,9 +1,9 @@
 apply plugin: "com.android.application"
-apply plugin: 'kotlin-android'
+apply plugin: 'com.facebook.react'
 
 android {
-    namespace "one.telefon.gateway"
     compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace "one.telefon.gateway"
 
     defaultConfig {
         applicationId "one.telefon.gateway"
@@ -35,10 +35,17 @@ android {
 }
 
 dependencies {
-    implementation "com.facebook.react:react-android"
-    implementation "com.facebook.react:hermes-android"
+    implementation fileTree(dir: "libs", include: ["*.jar"] )
+    implementation "com.facebook.react:react-native:+"  // From node_modules
 
-    implementation project(':react-native-sip2')
-    implementation project(':react-native-tele')
-    implementation project(':react-native-replace-dialer')
+    implementation project(path: ':react-native-sip2', configuration: 'default')
+    implementation project(path: ':react-native-tele', configuration: 'default')
+    implementation project(path: ':react-native-replace-dialer', configuration: 'default')
 }
+
+// Apply React Native Bundling
+apply from: "../../node_modules/react-native/react.gradle"
+
+// Apply RN CLI Android autolinking
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesAppBuildGradle(project)
