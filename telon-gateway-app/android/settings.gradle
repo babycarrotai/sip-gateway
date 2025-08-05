@@ -1,6 +1,12 @@
 rootProject.name = 'teleexample'
 
-apply from: new File(rootProject.projectDir, "../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
-applyNativeModulesSettings(settings)
-
 include ':app'
+
+include ':react-native-sip2'
+project(':react-native-sip2').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-sip2/android')
+
+include ':react-native-tele'
+project(':react-native-tele').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-tele/android')
+
+include ':react-native-replace-dialer'
+project(':react-native-replace-dialer').projectDir = new File(rootProject.projectDir, '../react-native-replace-dialer/android')

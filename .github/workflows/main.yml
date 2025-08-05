@@ -1,4 +1,4 @@
-# Fixed GitHub Actions workflow with corrected Gradle paths
+# Modernized GitHub Actions workflow
 name: Build Android APK and AAB
 
 on:
@@ -21,24 +21,14 @@ jobs:
           path: react-native-gsm-sip-gateway
 
       - name: Set working directory
-        run: |
-          if [ -d "react-native-gsm-sip-gateway/telon-gateway-app" ]; then
-            echo "WORK_DIR=react-native-gsm-sip-gateway/telon-gateway-app" >> $GITHUB_ENV
-          elif [ -f "react-native-gsm-sip-gateway/package.json" ]; then
-            echo "WORK_DIR=react-native-gsm-sip-gateway" >> $GITHUB_ENV
-          else
-            echo "ERROR: No package.json found in expected locations"
-            exit 1
-          fi
+        run: echo "WORK_DIR=react-native-gsm-sip-gateway/telon-gateway-app" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '12'
-          cache: 'npm'
-          cache-dependency-path: ${{ env.WORK_DIR }}/package-lock.json
+          node-version: '18'
 
-      - name: Set up JDK 17 for SDK Manager
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
@@ -50,17 +40,33 @@ jobs:
       - name: Install Dependencies
         working-directory: ${{ env.WORK_DIR }}
         run: |
+          git clone https://github.com/telon-org/react-native-replace-dialer.git
           npm install
+
+      - name: Patch Library Source Code
+        working-directory: ${{ env.WORK_DIR }}
+        run: |
+          # Patch react-native-sip2
+          sed -i '/android {/a \    namespace "com.reactlibrary.sip2"\
+              buildFeatures {\
+                  buildConfig false\
+              }' node_modules/react-native-sip2/android/build.gradle
+          
+          # Patch react-native-tele
+          sed -i '/android {/a \    namespace "com.reactlibrary.tele"\
+              buildFeatures {\
+                  buildConfig false\
+              }' node_modules/react-native-tele/android/build.gradle
+          
+          # Patch react-native-replace-dialer
+          sed -i '/android {/a \    namespace "com.reactlibrary.replacedialer"\
+              buildFeatures {\
+                  buildConfig false\
+              }' react-native-replace-dialer/android/build.gradle
 
       - name: Create local.properties
         working-directory: ${{ env.WORK_DIR }}/android
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
-
-      - name: Set up JDK 8 for Gradle
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'temurin'
 
       - name: Make Gradlew executable
         working-directory: ${{ env.WORK_DIR }}/android
@@ -72,13 +78,13 @@ jobs:
 
       - name: Build Android APK
         working-directory: ${{ env.WORK_DIR }}/android
-        run: ./gradlew assembleRelease --stacktrace --info
+        run: ./gradlew assembleRelease
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
       - name: Build Android App Bundle (AAB)
         working-directory: ${{ env.WORK_DIR }}/android
-        run: ./gradlew bundleRelease --stacktrace --info
+        run: ./gradlew bundleRelease
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
